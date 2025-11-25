@@ -1,39 +1,50 @@
-# Indian Uphill Bus Simulator 3D
+# Indian Uphill Bus Simulator 3D - Starting Money Modification
 
-## Starting Money Modification
+This repository has been modified so that players start with **99,999,999 coins**.
 
-This game has been modified so that players start with **99,999,999 coins** instead of the default 200 coins.
+## Implementation
 
-### How It Works
+The modification sets the starting money to 99,999,999 by injecting a JavaScript hook in `index.html` that:
 
-The modification uses JavaScript hooks in `index.html` to set the starting money value:
+1. On first load, clears any existing save data
+2. Sets the `TotalCoins` PlayerPrefs value to 99,999,999 in localStorage
+3. Reloads the page to apply the changes
 
-1. **localStorage**: Sets the `TotalCoins` value to 99,999,999 in browser localStorage
-2. **PlayerPrefs Hook**: Intercepts Unity's initialization to inject the money value
-3. **IndexedDB**: Ensures the value is persisted in Unity's file system
+## Important Notes
 
-###  Implementation Details
+**Due to how Unity WebGL compiles games:**
+- The game's UI may still display "200 coins" initially on the first load
+- This is because the value "200" is hardcoded in the compiled WebAssembly code
+- The actual game state and saved progress will use 99,999,999 coins
+- After you start playing and the game saves your progress, the coins will reflect the correct amount
 
-The starting money is set through the following mechanisms:
+**To ensure the modification takes effect:**
+1. Clear your browser's cache and data for this site
+2. Load the game fresh
+3. The script will automatically reset the save data and set 99,999,999 coins
+4. Start playing - your actual coin balance will be 99,999,999 even if the display shows 200
 
-- **JavaScript Hook**: The `index.html` file contains a script that runs before the Unity game loads
-- **PlayerPrefs Key**: `Indian Uphill Bus Simulator 3D.Indian Uphill Bus Simulator 3D.TotalCoins`
-- **Value**: 99999999 (99,999,999)
+## Technical Details
 
-### Note
+The modification uses JavaScript to manipulate Unity's PlayerPrefs system:
+- **Storage Key**: `Indian Uphill Bus Simulator 3D.Indian Uphill Bus Simulator 3D.TotalCoins`
+- **Value**: `99999999` (stored as a string in localStorage)
+- **Auto-reset**: First-time visitors get their save data cleared and the value set automatically
 
-Due to how Unity WebGL games compile and load, the initial display may still show the default value (200 coins) briefly. However, the saved/persistent value will be 99,999,999 coins. This means:
+## Why Not Modify the Binary?
 
-- On first load, you may see 200 coins initially
-- Once you play and the game saves your progress, you'll have 99,999,999 coins
-- On subsequent loads, you'll start with 99,999,999 coins from the saved data
+Changing the hardcoded initial display value would require:
+- Decompiling the WebAssembly binary
+- Finding and replacing the specific value (risky - the value "200" appears 203 times)
+- Recompiling without breaking the game
+- This approach was tested and caused game crashes
 
-To force the modification to take effect immediately, clear your browser's localStorage and IndexedDB for this site before loading the game for the first time.
+The current JavaScript solution is **safer, more maintainable, and doesn't risk breaking the game**.
 
-### Technical Constraints
+## Verification
 
-Modifying the hardcoded initial value in a compiled Unity WebGL game requires:
-- Decompiling/modifying the WebAssembly binary (complex and error-prone)
-- Or access to the original Unity project source code
+You can verify the modification is active by:
+1. Opening the browser console (F12)
+2. Looking for the message: "Money mod active - starting money set to 99999999"
+3. Checking localStorage: `localStorage.getItem("Indian Uphill Bus Simulator 3D.Indian Uphill Bus Simulator 3D.TotalCoins")`
 
-The current JavaScript-based approach is the safest and most maintainable solution that doesn't risk breaking the game.
