@@ -14,44 +14,63 @@
         var STARTING_MONEY = 99999999;
         var companyName = "Indian Uphill Bus Simulator 3D";
         var productName = "Indian Uphill Bus Simulator 3D";
+        var MONEY_KEY = companyName + "." + productName + ".TotalCoins";
+        var RESET_FLAG_KEY = '_moneyModApplied';
         
         // Clear any existing save data and set fresh value
         function resetGameWithMoney() {
-          // Clear localStorage
-          for (var i = localStorage.length - 1; i >= 0; i--) {
+          // Collect all keys first to avoid iteration issues
+          var keysToRemove = [];
+          for (var i = 0; i < localStorage.length; i++) {
             var key = localStorage.key(i);
             if (key && key.indexOf(companyName) === 0) {
-              localStorage.removeItem(key);
+              keysToRemove.push(key);
             }
           }
           
+          // Remove collected keys
+          for (var j = 0; j < keysToRemove.length; j++) {
+            localStorage.removeItem(keysToRemove[j]);
+          }
+          
           // Set the money value
-          var lsKey = companyName + "." + productName + ".TotalCoins";
-          localStorage.setItem(lsKey, String(STARTING_MONEY));
+          localStorage.setItem(MONEY_KEY, String(STARTING_MONEY));
           
           // Clear IndexedDB
           var dbName = '/idbfs/' + companyName + '/' + productName;
           var deleteRequest = indexedDB.deleteDatabase(dbName);
+          
           deleteRequest.onsuccess = function() {
             console.log("Game data reset with " + STARTING_MONEY + " coins");
+            // Mark as applied only after successful reset
+            localStorage.setItem(RESET_FLAG_KEY, 'true');
+            window.location.reload();
+          };
+          
+          deleteRequest.onerror = function(e) {
+            console.warn("IndexedDB deletion failed, but continuing with localStorage reset:", e);
+            // Mark as applied even on error to avoid repeated failures
+            localStorage.setItem(RESET_FLAG_KEY, 'true');
             window.location.reload();
           };
         }
         
         // Check if we should reset (first time only)
-        var resetKey = '_moneyModApplied';
-        if (!localStorage.getItem(resetKey)) {
+        if (!localStorage.getItem(RESET_FLAG_KEY)) {
           console.log("First load detected - resetting game with " + STARTING_MONEY + " coins");
-          localStorage.setItem(resetKey, 'true');
           resetGameWithMoney();
           return; // Will reload
         }
         
-        // Set in localStorage for subsequent loads
-        var lsKey = companyName + "." + productName + ".TotalCoins";
-        localStorage.setItem(lsKey, String(STARTING_MONEY));
-        
-        console.log("Money mod active - starting money set to " + STARTING_MONEY);
+        // On subsequent loads, only set the money if it doesn't exist or is below the starting amount
+        // This preserves player progress while ensuring minimum starting money
+        var currentMoney = localStorage.getItem(MONEY_KEY);
+        if (!currentMoney || parseInt(currentMoney, 10) < STARTING_MONEY) {
+          localStorage.setItem(MONEY_KEY, String(STARTING_MONEY));
+          console.log("Money mod active - starting money set to " + STARTING_MONEY);
+        } else {
+          console.log("Money mod active - preserving player's current money: " + currentMoney);
+        }
       })();
       
       var gameInstance = UnityLoader.instantiate("gameContainer", "Build/IndianUphillBusSimulator3D-1_0.json", {onProgress: UnityProgress,Module:{onRuntimeInitialized: function() {UnityProgress(gameInstance, "complete")}}});
