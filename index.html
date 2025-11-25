@@ -21,9 +21,9 @@
         
         // Clear any existing save data and set fresh value
         function resetGameWithMoney() {
-          // Collect all keys first to avoid iteration issues during removal
+          // Step 1: Collect all keys to remove (don't remove during iteration to avoid index shifting)
           var keysToRemove = [];
-          var storageLength = localStorage.length; // Cache length before iteration
+          var storageLength = localStorage.length;
           for (var i = 0; i < storageLength; i++) {
             var key = localStorage.key(i);
             if (key && key.indexOf(companyName) === 0) {
@@ -31,7 +31,7 @@
             }
           }
           
-          // Remove collected keys
+          // Step 2: Now safely remove all collected keys
           for (var j = 0; j < keysToRemove.length; j++) {
             localStorage.removeItem(keysToRemove[j]);
           }
