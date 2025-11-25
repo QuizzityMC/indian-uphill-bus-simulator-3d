@@ -21,9 +21,10 @@
         
         // Clear any existing save data and set fresh value
         function resetGameWithMoney() {
-          // Collect all keys first to avoid iteration issues
+          // Collect all keys first to avoid iteration issues during removal
           var keysToRemove = [];
-          for (var i = 0; i < localStorage.length; i++) {
+          var storageLength = localStorage.length; // Cache length before iteration
+          for (var i = 0; i < storageLength; i++) {
             var key = localStorage.key(i);
             if (key && key.indexOf(companyName) === 0) {
               keysToRemove.push(key);
@@ -38,7 +39,7 @@
           // Set the money value
           localStorage.setItem(MONEY_KEY, String(STARTING_MONEY));
           
-          // Clear IndexedDB
+          // Clear IndexedDB - Unity WebGL uses '/idbfs/' prefix for its file system storage
           var dbName = '/idbfs/' + companyName + '/' + productName;
           var deleteRequest = indexedDB.deleteDatabase(dbName);
           
