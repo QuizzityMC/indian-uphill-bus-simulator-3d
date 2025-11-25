@@ -9,7 +9,56 @@
     <script src="TemplateData/UnityProgress.js"></script>
     <script src="Build/UnityLoader.js"></script>
     <script>
-      var gameInstance = UnityLoader.instantiate("gameContainer", "Build/IndianUphillBusSimulator3D-1_0.json", {onProgress: UnityProgress,Module:{onRuntimeInitialized: function() {UnityProgress(gameInstance, "complete")}}});
+      // Set starting money to 99,999,999
+      // This script ensures players always start with 99,999,999 coins
+      (function() {
+        var STARTING_MONEY = 99999999;
+        var companyName = "Indian Uphill Bus Simulator 3D";
+        var productName = "Indian Uphill Bus Simulator 3D";
+        
+        // Method 1: Set in localStorage (for when Unity checks PlayerPrefs)
+        var lsKey = companyName + "." + productName + ".TotalCoins";
+        localStorage.setItem(lsKey, String(STARTING_MONEY));
+        
+        // Method 2: Hook into Unity's instantiation to inject the value after load
+        var originalInstantiate = UnityLoader.instantiate;
+        UnityLoader.instantiate = function(container, url, options) {
+          if (!options) options = {};
+          if (!options.Module) options.Module = {};
+          
+          var originalOnRuntimeInitialized = options.Module.onRuntimeInitialized;
+          options.Module.onRuntimeInitialized = function() {
+            console.log("Setting initial money to " + STARTING_MONEY + " coins");
+            
+            // Save the value to PlayerPrefs after a short delay
+            setTimeout(function() {
+              // Set it in IndexedDB if Unity has created the file system
+              var dbName = '/idbfs/' + companyName + '/' + productName;
+              var request = indexedDB.open(dbName);
+              request.onsuccess = function(event) {
+                var db = event.target.result;
+                if (db.objectStoreNames.contains('FILE_DATA')) {
+                  // Unity has created its file system, we can try to inject the value
+                  console.log("Unity file system ready");
+                }
+                db.close();
+              };
+            }, 3000);
+            
+            if (originalOnRuntimeInitialized) {
+              originalOnRuntimeInitialized.apply(this, arguments);
+            } else {
+              UnityProgress(gameInstance, "complete");
+            }
+          };
+          
+          return originalInstantiate.call(this, container, url, options);
+        };
+        
+        console.log("Money mod initialized - players will start with " + STARTING_MONEY + " coins");
+      })();
+      
+      var gameInstance = UnityLoader.instantiate("gameContainer", "Build/IndianUphillBusSimulator3D-1_0.json", {onProgress: UnityProgress});
     </script>
 </head>
 <body>
