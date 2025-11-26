@@ -9,77 +9,56 @@
     <script src="TemplateData/UnityProgress.js"></script>
     <script src="Build/UnityLoader.js"></script>
     <script>
-      // Set starting money to 99,999,999
-      (function() {
-        var STARTING_MONEY = 99999999;
-        // Unity WebGL stores PlayerPrefs with format: "CompanyName.ProductName.Key"
-        // Both company and product name are "Indian Uphill Bus Simulator 3D" for this game
-        var companyName = "Indian Uphill Bus Simulator 3D";
-        var productName = "Indian Uphill Bus Simulator 3D";
-        var MONEY_KEY = companyName + "." + productName + ".TotalCoins";
-        var RESET_FLAG_KEY = '_moneyModApplied';
-        
-        // Clear any existing save data and set fresh value
-        function resetGameWithMoney() {
-          // Step 1: Collect all keys to remove (don't remove during iteration to avoid index shifting)
-          var keysToRemove = [];
-          var storageLength = localStorage.length;
-          for (var i = 0; i < storageLength; i++) {
-            var key = localStorage.key(i);
-            if (key && key.indexOf(companyName) === 0) {
-              keysToRemove.push(key);
+      // Money modification script - sets money immediately and during Unity initialization
+      var STARTING_MONEY = 999999999;
+      var companyName = "Indian Uphill Bus Simulator 3D";
+      var productName = "Indian Uphill Bus Simulator 3D";
+      var MONEY_KEY = companyName + "." + productName + ".TotalCoins";
+      var INIT_CHECK_INTERVAL_MS = 100; // Check every 100ms
+      var INIT_DURATION_SECONDS = 5; // Check for 5 seconds
+      var MAX_INIT_ATTEMPTS = (INIT_DURATION_SECONDS * 1000) / INIT_CHECK_INTERVAL_MS; // 50 attempts
+      var POST_INIT_DELAY_MS = 100; // Delay after Unity runtime init
+      
+      // This function sets the starting money in localStorage
+      function setStartingMoney() {
+        console.log("[Money Mod] Setting starting money to " + STARTING_MONEY);
+        localStorage.setItem(MONEY_KEY, String(STARTING_MONEY));
+      }
+      
+      // Call immediately
+      setStartingMoney();
+      
+      // Also set it periodically during Unity's initialization
+      var attempts = 0;
+      var interval = setInterval(function() {
+        setStartingMoney();
+        attempts++;
+        if (attempts >= MAX_INIT_ATTEMPTS) {
+          clearInterval(interval);
+          console.log("[Money Mod] Finished setting starting money");
+        }
+      }, INIT_CHECK_INTERVAL_MS);
+      
+      // Initialize Unity game
+      var gameInstance = UnityLoader.instantiate(
+        "gameContainer",
+        "Build/IndianUphillBusSimulator3D-1_0.json",
+        {
+          onProgress: UnityProgress,
+          Module: {
+            onRuntimeInitialized: function() {
+              UnityProgress(gameInstance, "complete");
+              // Clear the interval since Unity is initialized
+              clearInterval(interval);
+              // Set money one final time after Unity runtime is fully initialized
+              setTimeout(function() {
+                setStartingMoney();
+                console.log("[Money Mod] Final money set after Unity initialization");
+              }, POST_INIT_DELAY_MS);
             }
           }
-          
-          // Step 2: Now safely remove all collected keys
-          for (var j = 0; j < keysToRemove.length; j++) {
-            localStorage.removeItem(keysToRemove[j]);
-          }
-          
-          // Set the money value
-          localStorage.setItem(MONEY_KEY, String(STARTING_MONEY));
-          
-          // Clear IndexedDB - Unity WebGL uses '/idbfs/' prefix for its file system storage
-          var dbName = '/idbfs/' + companyName + '/' + productName;
-          var deleteRequest = indexedDB.deleteDatabase(dbName);
-          
-          deleteRequest.onsuccess = function() {
-            console.log("Game data reset with " + STARTING_MONEY + " coins");
-            // Mark as applied only after successful reset
-            localStorage.setItem(RESET_FLAG_KEY, 'true');
-            window.location.reload();
-          };
-          
-          deleteRequest.onerror = function(e) {
-            console.warn("IndexedDB deletion failed, but continuing with localStorage reset:", e);
-            // Mark as applied even on error to avoid repeated failures
-            localStorage.setItem(RESET_FLAG_KEY, 'true');
-            window.location.reload();
-          };
         }
-        
-        // Check if we should reset (first time only)
-        if (!localStorage.getItem(RESET_FLAG_KEY)) {
-          console.log("First load detected - resetting game with " + STARTING_MONEY + " coins");
-          resetGameWithMoney();
-          return; // Will reload
-        }
-        
-        // On subsequent loads, only set the money if it doesn't exist or is below the starting amount
-        // This preserves player progress while ensuring minimum starting money
-        var currentMoney = localStorage.getItem(MONEY_KEY);
-        var currentMoneyValue = parseInt(currentMoney, 10);
-        
-        // Handle invalid or missing money value
-        if (!currentMoney || isNaN(currentMoneyValue) || currentMoneyValue < STARTING_MONEY) {
-          localStorage.setItem(MONEY_KEY, String(STARTING_MONEY));
-          console.log("Money mod active - starting money set to " + STARTING_MONEY);
-        } else {
-          console.log("Money mod active - preserving player's current money: " + currentMoney);
-        }
-      })();
-      
-      var gameInstance = UnityLoader.instantiate("gameContainer", "Build/IndianUphillBusSimulator3D-1_0.json", {onProgress: UnityProgress,Module:{onRuntimeInitialized: function() {UnityProgress(gameInstance, "complete")}}});
+      );
     </script>
 </head>
 <body>
