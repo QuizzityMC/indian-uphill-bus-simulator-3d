@@ -22,6 +22,7 @@
         console.log("[Bus Unlock] Unlocking all buses");
         
         // Try various common unlock key patterns for buses
+        // Range 0-20 covers most Unity games (21 buses total to ensure full coverage)
         var unlockPatterns = [
           // Pattern 1: BusXUnlocked
           { prefix: "Bus", suffix: "Unlocked", count: 20 },
@@ -41,7 +42,7 @@
         unlockPatterns.forEach(function(pattern) {
           for (var i = 0; i <= pattern.count; i++) {
             var key = companyName + "." + productName + "." + pattern.prefix + i + pattern.suffix;
-            // Try both numeric 1 and string "1" for unlocked state
+            // Set unlock state to "1" (unlocked)
             localStorage.setItem(key, "1");
             localStorage.setItem(key + "_int", "1");
           }
