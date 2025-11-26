@@ -19,17 +19,19 @@ The modification sets the starting money to 999,999,999 by injecting a JavaScrip
 - After you start playing and the game saves your progress, the coins will reflect the correct amount
 
 **To ensure the modification takes effect:**
-1. Clear your browser's cache and data for this site
-2. Load the game fresh
-3. The script will automatically reset the save data and set 999,999,999 coins
-4. Start playing - your actual coin balance will be 999,999,999 even if the display shows 200
+1. Simply refresh the page - the script automatically detects money amount changes
+2. The script will reset the save data and set 999,999,999 coins
+3. Start playing - your actual coin balance will be 999,999,999 even if the display shows 200
+
+**Note:** If you previously visited with an older version, the script will automatically detect the change and reset your game data to apply the new starting money amount.
 
 ## Technical Details
 
 The modification uses JavaScript to manipulate Unity's PlayerPrefs system:
 - **Storage Key**: `Indian Uphill Bus Simulator 3D.Indian Uphill Bus Simulator 3D.TotalCoins`
 - **Value**: `999999999` (stored as a string in localStorage)
-- **Auto-reset**: First-time visitors get their save data cleared and the value set automatically
+- **Auto-reset**: Automatically resets when the starting money amount changes
+- **Version tracking**: Uses a versioned flag (`_moneyModApplied_999999999`) to detect changes
 
 ## Why Not Modify the Binary?
 

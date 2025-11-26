@@ -17,7 +17,8 @@
         var companyName = "Indian Uphill Bus Simulator 3D";
         var productName = "Indian Uphill Bus Simulator 3D";
         var MONEY_KEY = companyName + "." + productName + ".TotalCoins";
-        var RESET_FLAG_KEY = '_moneyModApplied';
+        // Version the flag with the money amount so changes force a reset
+        var RESET_FLAG_KEY = '_moneyModApplied_' + STARTING_MONEY;
         
         // Clear any existing save data and set fresh value
         function resetGameWithMoney() {
@@ -34,6 +35,14 @@
           // Step 2: Now safely remove all collected keys
           for (var j = 0; j < keysToRemove.length; j++) {
             localStorage.removeItem(keysToRemove[j]);
+          }
+          
+          // Also remove old version flags to clean up
+          for (var k = 0; k < storageLength; k++) {
+            var key = localStorage.key(k);
+            if (key && key.indexOf('_moneyModApplied') === 0) {
+              localStorage.removeItem(key);
+            }
           }
           
           // Set the money value
@@ -58,9 +67,9 @@
           };
         }
         
-        // Check if we should reset (first time only)
+        // Check if we should reset (first time or when money amount changes)
         if (!localStorage.getItem(RESET_FLAG_KEY)) {
-          console.log("First load detected - resetting game with " + STARTING_MONEY + " coins");
+          console.log("First load or money amount changed - resetting game with " + STARTING_MONEY + " coins");
           resetGameWithMoney();
           return; // Will reload
         }
