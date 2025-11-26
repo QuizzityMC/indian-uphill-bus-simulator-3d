@@ -27,7 +27,7 @@
           var storageLength = localStorage.length;
           for (var i = 0; i < storageLength; i++) {
             var key = localStorage.key(i);
-            if (key && key.indexOf(companyName) === 0) {
+            if (key && (key.indexOf(companyName) === 0 || key.indexOf('_moneyModApplied') === 0)) {
               keysToRemove.push(key);
             }
           }
@@ -35,14 +35,6 @@
           // Step 2: Now safely remove all collected keys
           for (var j = 0; j < keysToRemove.length; j++) {
             localStorage.removeItem(keysToRemove[j]);
-          }
-          
-          // Also remove old version flags to clean up
-          for (var k = 0; k < storageLength; k++) {
-            var key = localStorage.key(k);
-            if (key && key.indexOf('_moneyModApplied') === 0) {
-              localStorage.removeItem(key);
-            }
           }
           
           // Set the money value
