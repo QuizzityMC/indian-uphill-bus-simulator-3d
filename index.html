@@ -9,33 +9,63 @@
     <script src="TemplateData/UnityProgress.js"></script>
     <script src="Build/UnityLoader.js"></script>
     <script>
-      // Money modification script - sets money immediately and during Unity initialization
-      var STARTING_MONEY = 999999999;
+      // Bus unlock modification script - unlocks all buses at game start
       var companyName = "Indian Uphill Bus Simulator 3D";
       var productName = "Indian Uphill Bus Simulator 3D";
-      var MONEY_KEY = companyName + "." + productName + ".TotalCoins";
       var INIT_CHECK_INTERVAL_MS = 100; // Check every 100ms
       var INIT_DURATION_SECONDS = 5; // Check for 5 seconds
       var MAX_INIT_ATTEMPTS = (INIT_DURATION_SECONDS * 1000) / INIT_CHECK_INTERVAL_MS; // 50 attempts
       var POST_INIT_DELAY_MS = 100; // Delay after Unity runtime init
       
-      // This function sets the starting money in localStorage
-      function setStartingMoney() {
-        console.log("[Money Mod] Setting starting money to " + STARTING_MONEY);
-        localStorage.setItem(MONEY_KEY, String(STARTING_MONEY));
+      // This function unlocks all buses by setting unlock keys in localStorage
+      function unlockAllBuses() {
+        console.log("[Bus Unlock] Unlocking all buses");
+        
+        // Try various common unlock key patterns for buses
+        var unlockPatterns = [
+          // Pattern 1: BusXUnlocked
+          { prefix: "Bus", suffix: "Unlocked", count: 20 },
+          // Pattern 2: VehicleXUnlocked
+          { prefix: "Vehicle", suffix: "Unlocked", count: 20 },
+          // Pattern 3: bus_X_unlocked
+          { prefix: "bus_", suffix: "_unlocked", count: 20 },
+          // Pattern 4: UnlockedBusX
+          { prefix: "UnlockedBus", suffix: "", count: 20 },
+          // Pattern 5: BusX (simple pattern)
+          { prefix: "Bus", suffix: "", count: 20 },
+          // Pattern 6: Unlock_X
+          { prefix: "Unlock_", suffix: "", count: 20 }
+        ];
+        
+        // Set unlock keys for all patterns
+        unlockPatterns.forEach(function(pattern) {
+          for (var i = 0; i <= pattern.count; i++) {
+            var key = companyName + "." + productName + "." + pattern.prefix + i + pattern.suffix;
+            // Try both numeric 1 and string "1" for unlocked state
+            localStorage.setItem(key, "1");
+            localStorage.setItem(key + "_int", "1");
+          }
+        });
+        
+        // Also set some global unlock flags
+        localStorage.setItem(companyName + "." + productName + ".AllBusesUnlocked", "1");
+        localStorage.setItem(companyName + "." + productName + ".UnlockAll", "1");
+        localStorage.setItem(companyName + "." + productName + ".AllVehiclesUnlocked", "1");
+        
+        console.log("[Bus Unlock] All bus unlock keys have been set");
       }
       
       // Call immediately
-      setStartingMoney();
+      unlockAllBuses();
       
       // Also set it periodically during Unity's initialization
       var attempts = 0;
       var interval = setInterval(function() {
-        setStartingMoney();
+        unlockAllBuses();
         attempts++;
         if (attempts >= MAX_INIT_ATTEMPTS) {
           clearInterval(interval);
-          console.log("[Money Mod] Finished setting starting money");
+          console.log("[Bus Unlock] Finished unlocking buses");
         }
       }, INIT_CHECK_INTERVAL_MS);
       
@@ -50,10 +80,10 @@
               UnityProgress(gameInstance, "complete");
               // Clear the interval since Unity is initialized
               clearInterval(interval);
-              // Set money one final time after Unity runtime is fully initialized
+              // Unlock buses one final time after Unity runtime is fully initialized
               setTimeout(function() {
-                setStartingMoney();
-                console.log("[Money Mod] Final money set after Unity initialization");
+                unlockAllBuses();
+                console.log("[Bus Unlock] Final unlock after Unity initialization");
               }, POST_INIT_DELAY_MS);
             }
           }
