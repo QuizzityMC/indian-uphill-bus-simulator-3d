@@ -9,7 +9,7 @@
     <script src="TemplateData/UnityProgress.js"></script>
     <script src="Build/UnityLoader.js"></script>
     <script>
-      // Money modification script - runs AFTER Unity runtime initializes
+      // Money modification script - sets money immediately and during Unity initialization
       var STARTING_MONEY = 999999999;
       var companyName = "Indian Uphill Bus Simulator 3D";
       var productName = "Indian Uphill Bus Simulator 3D";
@@ -28,7 +28,7 @@
       // Call immediately
       setStartingMoney();
       
-      // Also set it periodically for the first 5 seconds to catch Unity's initialization
+      // Also set it periodically during Unity's initialization
       var attempts = 0;
       var interval = setInterval(function() {
         setStartingMoney();
@@ -39,14 +39,26 @@
         }
       }, INIT_CHECK_INTERVAL_MS);
       
-      var gameInstance = UnityLoader.instantiate("gameContainer", "Build/IndianUphillBusSimulator3D-1_0.json", {onProgress: UnityProgress,Module:{onRuntimeInitialized: function() {
-        UnityProgress(gameInstance, "complete");
-        // Set money one final time after Unity runtime is fully initialized
-        setTimeout(function() {
-          setStartingMoney();
-          console.log("[Money Mod] Final money set after Unity initialization");
-        }, POST_INIT_DELAY_MS);
-      }}});
+      // Initialize Unity game
+      var gameInstance = UnityLoader.instantiate(
+        "gameContainer",
+        "Build/IndianUphillBusSimulator3D-1_0.json",
+        {
+          onProgress: UnityProgress,
+          Module: {
+            onRuntimeInitialized: function() {
+              UnityProgress(gameInstance, "complete");
+              // Clear the interval since Unity is initialized
+              clearInterval(interval);
+              // Set money one final time after Unity runtime is fully initialized
+              setTimeout(function() {
+                setStartingMoney();
+                console.log("[Money Mod] Final money set after Unity initialization");
+              }, POST_INIT_DELAY_MS);
+            }
+          }
+        }
+      );
     </script>
 </head>
 <body>
