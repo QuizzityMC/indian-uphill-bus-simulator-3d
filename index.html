@@ -14,18 +14,12 @@
       var companyName = "Indian Uphill Bus Simulator 3D";
       var productName = "Indian Uphill Bus Simulator 3D";
       var MONEY_KEY = companyName + "." + productName + ".TotalCoins";
+      var MAX_INIT_ATTEMPTS = 50; // 5 seconds (50 * 100ms)
       
-      // This function will be called after Unity runtime initializes
+      // This function sets the starting money in localStorage
       function setStartingMoney() {
         console.log("[Money Mod] Setting starting money to " + STARTING_MONEY);
-        
-        // Set in localStorage
         localStorage.setItem(MONEY_KEY, String(STARTING_MONEY));
-        
-        // Force Unity to sync from localStorage to its internal state
-        if (typeof Module !== 'undefined' && Module.HEAP32) {
-          console.log("[Money Mod] Money set successfully!");
-        }
       }
       
       // Call immediately
@@ -33,11 +27,10 @@
       
       // Also set it periodically for the first 5 seconds to catch Unity's initialization
       var attempts = 0;
-      var maxAttempts = 50; // 5 seconds (50 * 100ms)
       var interval = setInterval(function() {
         setStartingMoney();
         attempts++;
-        if (attempts >= maxAttempts) {
+        if (attempts >= MAX_INIT_ATTEMPTS) {
           clearInterval(interval);
           console.log("[Money Mod] Finished setting starting money");
         }
