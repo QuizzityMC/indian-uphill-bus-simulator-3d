@@ -13,60 +13,106 @@
       var companyName = "Indian Uphill Bus Simulator 3D";
       var productName = "Indian Uphill Bus Simulator 3D";
       var INIT_CHECK_INTERVAL_MS = 100; // Check every 100ms
-      var INIT_DURATION_SECONDS = 5; // Check for 5 seconds
-      var MAX_INIT_ATTEMPTS = (INIT_DURATION_SECONDS * 1000) / INIT_CHECK_INTERVAL_MS; // 50 attempts
-      var POST_INIT_DELAY_MS = 100; // Delay after Unity runtime init
+      var INIT_DURATION_SECONDS = 10; // Check for 10 seconds (extended for better coverage)
+      var MAX_INIT_ATTEMPTS = (INIT_DURATION_SECONDS * 1000) / INIT_CHECK_INTERVAL_MS; // 100 attempts
+      var POST_INIT_DELAY_MS = 500; // Delay after Unity runtime init
+      var BUS_COUNT = 50; // Extended range for comprehensive coverage
       
       // This function unlocks all buses by setting unlock keys in localStorage
       function unlockAllBuses() {
         console.log("[Bus Unlock] Unlocking all buses");
         
-        // Try various common unlock key patterns for buses
-        // Range 0-20 covers most Unity games (21 buses total to ensure full coverage)
+        // Comprehensive unlock key patterns for all possible bus/vehicle unlock mechanisms
         var unlockPatterns = [
-          // Pattern 1: BusXUnlocked
-          { prefix: "Bus", suffix: "Unlocked", count: 20 },
-          // Pattern 2: VehicleXUnlocked
-          { prefix: "Vehicle", suffix: "Unlocked", count: 20 },
-          // Pattern 3: bus_X_unlocked
-          { prefix: "bus_", suffix: "_unlocked", count: 20 },
-          // Pattern 4: UnlockedBusX
-          { prefix: "UnlockedBus", suffix: "", count: 20 },
-          // Pattern 5: BusX (simple pattern)
-          { prefix: "Bus", suffix: "", count: 20 },
-          // Pattern 6: Unlock_X
-          { prefix: "Unlock_", suffix: "", count: 20 }
+          // Standard Unity PlayerPrefs patterns
+          { prefix: "Bus", suffix: "Unlocked", count: BUS_COUNT },
+          { prefix: "Bus", suffix: "_Unlocked", count: BUS_COUNT },
+          { prefix: "Bus", suffix: "IsUnlocked", count: BUS_COUNT },
+          { prefix: "Vehicle", suffix: "Unlocked", count: BUS_COUNT },
+          { prefix: "Vehicle", suffix: "_Unlocked", count: BUS_COUNT },
+          { prefix: "Vehicle", suffix: "IsUnlocked", count: BUS_COUNT },
+          // Snake case patterns
+          { prefix: "bus_", suffix: "_unlocked", count: BUS_COUNT },
+          { prefix: "bus_", suffix: "_purchased", count: BUS_COUNT },
+          { prefix: "vehicle_", suffix: "_unlocked", count: BUS_COUNT },
+          { prefix: "vehicle_", suffix: "_purchased", count: BUS_COUNT },
+          // Reverse patterns
+          { prefix: "UnlockedBus", suffix: "", count: BUS_COUNT },
+          { prefix: "UnlockedVehicle", suffix: "", count: BUS_COUNT },
+          { prefix: "Unlocked_Bus", suffix: "", count: BUS_COUNT },
+          { prefix: "Unlocked_Vehicle", suffix: "", count: BUS_COUNT },
+          // Simple patterns
+          { prefix: "Bus", suffix: "", count: BUS_COUNT },
+          { prefix: "Vehicle", suffix: "", count: BUS_COUNT },
+          // Generic unlock patterns
+          { prefix: "Unlock_", suffix: "", count: BUS_COUNT },
+          { prefix: "unlock_", suffix: "", count: BUS_COUNT },
+          { prefix: "Purchased_", suffix: "", count: BUS_COUNT },
+          { prefix: "purchased_", suffix: "", count: BUS_COUNT },
+          // Level-based patterns
+          { prefix: "Level", suffix: "Unlocked", count: BUS_COUNT },
+          { prefix: "level_", suffix: "_unlocked", count: BUS_COUNT },
+          // Car/Transport patterns (some games use these)
+          { prefix: "Car", suffix: "Unlocked", count: BUS_COUNT },
+          { prefix: "car_", suffix: "_unlocked", count: BUS_COUNT },
+          { prefix: "Transport", suffix: "Unlocked", count: BUS_COUNT }
         ];
         
-        // Set unlock keys for all patterns
+        // Set unlock keys for all patterns with multiple value formats
         unlockPatterns.forEach(function(pattern) {
           for (var i = 0; i <= pattern.count; i++) {
             var key = companyName + "." + productName + "." + pattern.prefix + i + pattern.suffix;
-            // Set unlock state to "1" (unlocked)
+            // Set unlock state with various formats Unity might expect
             localStorage.setItem(key, "1");
             localStorage.setItem(key + "_int", "1");
+            localStorage.setItem(key + "_h", "1"); // Hashed variant
+            // Also try without company/product prefix
+            var simpleKey = pattern.prefix + i + pattern.suffix;
+            localStorage.setItem(simpleKey, "1");
           }
         });
         
-        // Also set some global unlock flags
-        localStorage.setItem(companyName + "." + productName + ".AllBusesUnlocked", "1");
-        localStorage.setItem(companyName + "." + productName + ".UnlockAll", "1");
-        localStorage.setItem(companyName + "." + productName + ".AllVehiclesUnlocked", "1");
+        // Set comprehensive global unlock flags
+        var globalFlags = [
+          "AllBusesUnlocked", "UnlockAll", "AllVehiclesUnlocked",
+          "AllUnlocked", "UnlockAllBuses", "UnlockAllVehicles",
+          "PremiumUnlocked", "FullVersion", "AllLevelsUnlocked",
+          "AllCarsUnlocked", "UnlockEverything", "NoAds",
+          "VIP", "Premium", "ProVersion", "UnlimitedMoney",
+          "InfiniteCoins", "MaxMoney", "MaxCoins"
+        ];
         
-        console.log("[Bus Unlock] All bus unlock keys have been set");
+        globalFlags.forEach(function(flag) {
+          localStorage.setItem(companyName + "." + productName + "." + flag, "1");
+          localStorage.setItem(flag, "1");
+        });
+        
+        // Set high currency values to ensure all buses can be purchased
+        var currencyKeys = [
+          "Money", "Coins", "Cash", "Gold", "Gems", "Currency",
+          "Credits", "Points", "Score", "Tokens", "Diamonds"
+        ];
+        
+        currencyKeys.forEach(function(currency) {
+          localStorage.setItem(companyName + "." + productName + "." + currency, "999999999");
+          localStorage.setItem(currency, "999999999");
+          localStorage.setItem(currency.toLowerCase(), "999999999");
+        });
+        
+        console.log("[Bus Unlock] All bus unlock keys and currency have been set");
       }
       
-      // Call immediately
+      // Call immediately before anything else loads
       unlockAllBuses();
       
-      // Also set it periodically during Unity's initialization
+      // Also set it periodically during Unity's initialization for reliability
       var attempts = 0;
       var interval = setInterval(function() {
         unlockAllBuses();
         attempts++;
         if (attempts >= MAX_INIT_ATTEMPTS) {
           clearInterval(interval);
-          console.log("[Bus Unlock] Finished unlocking buses");
+          console.log("[Bus Unlock] Finished unlocking buses after " + attempts + " attempts");
         }
       }, INIT_CHECK_INTERVAL_MS);
       
@@ -81,11 +127,20 @@
               UnityProgress(gameInstance, "complete");
               // Clear the interval since Unity is initialized
               clearInterval(interval);
-              // Unlock buses one final time after Unity runtime is fully initialized
+              // Unlock buses multiple times after Unity runtime is fully initialized
+              // This ensures unlock keys are set during Unity's PlayerPrefs initialization
+              setTimeout(function() {
+                unlockAllBuses();
+                console.log("[Bus Unlock] Post-init unlock (immediate)");
+              }, POST_INIT_DELAY_MS);
+              setTimeout(function() {
+                unlockAllBuses();
+                console.log("[Bus Unlock] Post-init unlock (delayed)");
+              }, POST_INIT_DELAY_MS * 2);
               setTimeout(function() {
                 unlockAllBuses();
                 console.log("[Bus Unlock] Final unlock after Unity initialization");
-              }, POST_INIT_DELAY_MS);
+              }, POST_INIT_DELAY_MS * 5);
             }
           }
         }
