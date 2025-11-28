@@ -2,6 +2,43 @@
 
 This document explains how to decompile and modify the Unity WebGL game assets for "Indian Uphill Bus Simulator 3D".
 
+## MODIFICATIONS APPLIED
+
+The game data file has been **modified** to set all bus prices to 0 (free). The following binary changes were made:
+
+### Price Array Modifications (offset 6035740)
+The power-of-2 price array was found and all values set to 0:
+| Offset | Original Value | New Value |
+|--------|----------------|-----------|
+| 6035740 | 1024 | 0 |
+| 6035744 | 2048 | 0 |
+| 6035748 | 4096 | 0 |
+| 6035752 | 8192 | 0 |
+| 6035756 | 16384 | 0 |
+| 6035760 | 32768 | 0 |
+| 6035764 | 65536 | 0 |
+| 6035768 | 131072 | 0 |
+
+### How the Modification Was Made
+```python
+import struct
+import gzip
+
+# Decompress
+with gzip.open('Build/IndianUphillBusSimulator3D-1_0.data.unityweb', 'rb') as f:
+    data = bytearray(f.read())
+
+# Modify price array at offset 6035740
+for i in range(8):
+    struct.pack_into('<i', data, 6035740 + i*4, 0)  # Set each price to 0
+
+# Recompress
+with gzip.open('Build/IndianUphillBusSimulator3D-1_0.data.unityweb', 'wb') as f:
+    f.write(data)
+```
+
+---
+
 ## Decompilation Results Summary
 
 I successfully decompressed and analyzed the game assets using UnityPy. Here are the key findings:
