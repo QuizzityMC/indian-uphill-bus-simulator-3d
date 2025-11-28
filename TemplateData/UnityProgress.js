@@ -31,7 +31,15 @@ function UnityProgress(gameInstance, progress) {
 
     //gameInstance.textProgress.innerHTML = 'Loading - ' + Math.floor(progress * 100) + '%' + ' <img src="' + rootPath + '/gears.gif" class="spinner" />';
 
-    if(progress>= 0.9 && progress<1)
+    if(progress >= 1 || progress === 'complete')
+    {
+        // Game is fully loaded - hide the loading screen
+        SendMessage = gameInstance.SendMessage;
+        gameInstance.logo.style.display = 'none';
+        gameInstance.progress.style.display = 'none';
+        gameInstance.textProgress.style.display = 'none';
+    }
+    else if(progress >= 0.9)
     {
         gameInstance.textProgress.innerHTML = '100% - Running, Wait..' +' <img src="' + rootPath + '/gears.gif" class="spinner" />';
         gameInstance.progress.style.display = 'none';
@@ -39,20 +47,6 @@ function UnityProgress(gameInstance, progress) {
     else
     {
         gameInstance.textProgress.innerHTML = 'Loading - ' + Math.floor(progress * 100) + '%' + ' <img src="' + rootPath + '/gears.gif" class="spinner" />';
-    }
-
-    /*
-    if (progress == 1) {
-        gameInstance.textProgress.innerHTML = 'Running, Please Wait.. <img src="' + rootPath + '/gears.gif" class="spinner" />';
-        gameInstance.progress.style.display = 'none';
-    }
-    */
-
-    if (progress == 'complete') {
-        SendMessage = gameInstance.SendMessage;
-        gameInstance.logo.style.display = 'none';
-        gameInstance.progress.style.display = 'none';
-        gameInstance.textProgress.style.display = 'none';
     }
 }
 
