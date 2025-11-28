@@ -13,20 +13,13 @@
       var companyName = "Indian Uphill Bus Simulator 3D";
       var productName = "Indian Uphill Bus Simulator 3D";
       
-      // Timing configuration for unlock initialization
-      // These values are optimized for Unity WebGL games which typically take 3-8 seconds to initialize
-      // The 10-second duration ensures unlock keys are set even on slower devices/connections
-      var INIT_CHECK_INTERVAL_MS = 100; // Check every 100ms for responsive coverage
-      var INIT_DURATION_SECONDS = 10; // Extended to 10 seconds to cover slow initialization scenarios
-      var MAX_INIT_ATTEMPTS = (INIT_DURATION_SECONDS * 1000) / INIT_CHECK_INTERVAL_MS; // 100 attempts total
-      var POST_INIT_DELAY_MS = 500; // 500ms delay after Unity runtime init to catch late PlayerPrefs reads
-      var BUS_COUNT = 50; // Extended range covers most Unity vehicle games (typically have 10-30 vehicles)
-      
       // This function attempts to unlock all buses by setting PlayerPrefs keys in localStorage
       // NOTE: These are the ACTUAL keys found from decompiling the Unity data file
       // However, this may not work because Unity WebGL games compile unlock logic into WASM
-      function unlockAllBuses() {
-        console.log("[Bus Unlock] Setting PlayerPrefs keys (discovered from decompilation)");
+      function unlockAllBuses(silent) {
+        if (!silent) {
+          console.log("[Bus Unlock] Setting PlayerPrefs keys (discovered from decompilation)");
+        }
         
         // === ACTUAL KEYS FOUND IN DECOMPILED DATA ===
         // These are the real PlayerPrefs keys used by the game:
@@ -98,57 +91,48 @@
           localStorage.setItem(flag, "1");
         });
         
-        console.log("[Bus Unlock] PlayerPrefs keys set. Keys found from decompilation:");
-        console.log("  - TotalCoins, NumOfLevelsUnlocked, LevelAllUnlock, SelectedBus");
-        console.log("  - Buses: Bus_1E through Bus_7E");
-        console.log("  - Levels: Level_01 through Level_20");
-        console.log("  - IAP: IAPUnloackAllBus (typo in original game code)");
-        console.log("[Bus Unlock] NOTE: This may not work due to WASM-compiled unlock logic");
+        if (!silent) {
+          console.log("[Bus Unlock] PlayerPrefs keys set. Keys found from decompilation:");
+          console.log("  - TotalCoins, NumOfLevelsUnlocked, LevelAllUnlock, SelectedBus");
+          console.log("  - Buses: Bus_1E through Bus_7E");
+          console.log("  - Levels: Level_01 through Level_20");
+          console.log("  - IAP: IAPUnloackAllBus (typo in original game code)");
+          console.log("[Bus Unlock] NOTE: This may not work due to WASM-compiled unlock logic");
+        }
       }
       
-      // Call immediately before anything else loads
-      unlockAllBuses();
+      // Call immediately before anything else loads (with logging)
+      unlockAllBuses(false);
       
-      // Also set it periodically during Unity's initialization for reliability
-      var attempts = 0;
-      var interval = setInterval(function() {
-        unlockAllBuses();
-        attempts++;
-        if (attempts >= MAX_INIT_ATTEMPTS) {
-          clearInterval(interval);
-          console.log("[Bus Unlock] Finished unlocking buses after " + attempts + " attempts");
-        }
-      }, INIT_CHECK_INTERVAL_MS);
+      // Game instance variable - will be set when DOM is ready
+      var gameInstance = null;
       
-      // Initialize Unity game
-      var gameInstance = UnityLoader.instantiate(
-        "gameContainer",
-        "Build/IndianUphillBusSimulator3D-1_0.json",
-        {
-          onProgress: UnityProgress,
-          Module: {
-            onRuntimeInitialized: function() {
-              UnityProgress(gameInstance, "complete");
-              // Clear the interval since Unity is initialized
-              clearInterval(interval);
-              // Unlock buses multiple times after Unity runtime is fully initialized
-              // This ensures unlock keys are set during Unity's PlayerPrefs initialization
-              setTimeout(function() {
-                unlockAllBuses();
-                console.log("[Bus Unlock] Post-init unlock (immediate)");
-              }, POST_INIT_DELAY_MS);
-              setTimeout(function() {
-                unlockAllBuses();
-                console.log("[Bus Unlock] Post-init unlock (delayed)");
-              }, POST_INIT_DELAY_MS * 2);
-              setTimeout(function() {
-                unlockAllBuses();
-                console.log("[Bus Unlock] Final unlock after Unity initialization");
-              }, POST_INIT_DELAY_MS * 5);
+      // Initialize Unity game when DOM is ready
+      document.addEventListener("DOMContentLoaded", function() {
+        gameInstance = UnityLoader.instantiate(
+          "gameContainer",
+          "Build/IndianUphillBusSimulator3D-1_0.json",
+          {
+            onProgress: UnityProgress,
+            Module: {
+              onRuntimeInitialized: function() {
+                UnityProgress(gameInstance, "complete");
+                console.log("[Bus Unlock] Unity runtime initialized, applying final unlocks");
+                // Schedule unlock attempts at 500ms, 1000ms, and 2500ms after initialization
+                // This ensures unlock keys are set during Unity's PlayerPrefs initialization
+                [500, 1000, 2500].forEach(function(delay, index, arr) {
+                  setTimeout(function() {
+                    unlockAllBuses(true);
+                    if (index === arr.length - 1) {
+                      console.log("[Bus Unlock] Final unlock complete");
+                    }
+                  }, delay);
+                });
+              }
             }
           }
-        }
-      );
+        );
+      });
     </script>
 </head>
 <body>
@@ -158,5 +142,4 @@
     <!-- Multiplayer System -->
     <script src="multiplayer.js"></script>
 </body>
-<script src="https://trafficjam3d.github.io/trafficjam3d/site.js"></script>
 </html>
