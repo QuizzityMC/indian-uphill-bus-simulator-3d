@@ -107,31 +107,59 @@
       // Game instance variable - will be set when DOM is ready
       var gameInstance = null;
       
+      // Global error handler for out-of-memory and other critical errors
+      window.addEventListener('error', function(e) {
+        if (e.message && (e.message.indexOf('out of memory') !== -1 || e.message.indexOf('Out of memory') !== -1)) {
+          console.error('[Unity] Out of memory error detected');
+          var container = document.getElementById('gameContainer');
+          if (container) {
+            var errorDiv = document.createElement('div');
+            errorDiv.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;color:white;font-family:sans-serif;background:rgba(0,0,0,0.8);padding:20px;border-radius:10px;';
+            errorDiv.innerHTML = '<h3>Memory Error</h3><p>The game ran out of memory.<br>Please try:</p><ul style="text-align:left;"><li>Closing other browser tabs</li><li>Refreshing the page</li><li>Using a different browser (Chrome recommended)</li></ul>';
+            container.appendChild(errorDiv);
+          }
+        }
+      });
+      
       // Initialize Unity game when DOM is ready
       document.addEventListener("DOMContentLoaded", function() {
-        gameInstance = UnityLoader.instantiate(
-          "gameContainer",
-          "Build/IndianUphillBusSimulator3D-1_0.json",
-          {
-            onProgress: UnityProgress,
-            Module: {
-              onRuntimeInitialized: function() {
-                UnityProgress(gameInstance, "complete");
-                console.log("[Bus Unlock] Unity runtime initialized, applying final unlocks");
-                // Schedule unlock attempts at 500ms, 1000ms, and 2500ms after initialization
-                // This ensures unlock keys are set during Unity's PlayerPrefs initialization
-                [500, 1000, 2500].forEach(function(delay, index, arr) {
-                  setTimeout(function() {
-                    unlockAllBuses(true);
-                    if (index === arr.length - 1) {
-                      console.log("[Bus Unlock] Final unlock complete");
-                    }
-                  }, delay);
-                });
+        try {
+          gameInstance = UnityLoader.instantiate(
+            "gameContainer",
+            "Build/IndianUphillBusSimulator3D-1_0.json",
+            {
+              onProgress: UnityProgress,
+              Module: {
+                onAbort: function(reason) {
+                  console.error('[Unity] Game aborted:', reason);
+                  var container = document.getElementById('gameContainer');
+                  if (container) {
+                    var errorDiv = document.createElement('div');
+                    errorDiv.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;color:white;font-family:sans-serif;background:rgba(0,0,0,0.8);padding:20px;border-radius:10px;z-index:9999;';
+                    errorDiv.innerHTML = '<h3>Game Error</h3><p>The game encountered an error.<br>Please refresh the page to try again.</p>';
+                    container.appendChild(errorDiv);
+                  }
+                },
+                onRuntimeInitialized: function() {
+                  UnityProgress(gameInstance, "complete");
+                  console.log("[Bus Unlock] Unity runtime initialized, applying final unlocks");
+                  // Schedule unlock attempts at 500ms, 1000ms, and 2500ms after initialization
+                  // This ensures unlock keys are set during Unity's PlayerPrefs initialization
+                  [500, 1000, 2500].forEach(function(delay, index, arr) {
+                    setTimeout(function() {
+                      unlockAllBuses(true);
+                      if (index === arr.length - 1) {
+                        console.log("[Bus Unlock] Final unlock complete");
+                      }
+                    }, delay);
+                  });
+                }
               }
             }
-          }
-        );
+          );
+        } catch (e) {
+          console.error('[Unity] Failed to initialize game:', e);
+        }
       });
     </script>
 </head>

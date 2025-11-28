@@ -1,5 +1,10 @@
 const rootPath = 'TemplateData';
 
+// Track loading start time for timeout detection
+var loadingStartTime = Date.now();
+var loadingTimeoutMs = 120000; // 2 minute timeout
+var loadingCheckInterval = null;
+
 function UnityProgress(gameInstance, progress) {
     if (!gameInstance.Module) {
         return;
@@ -24,16 +29,32 @@ function UnityProgress(gameInstance, progress) {
         gameInstance.textProgress = document.createElement("div");
         gameInstance.textProgress.className = "text";
         gameInstance.container.appendChild(gameInstance.textProgress);
+        
+        // Start loading timeout check
+        loadingStartTime = Date.now();
+        if (!loadingCheckInterval) {
+            loadingCheckInterval = setInterval(function() {
+                var elapsed = Date.now() - loadingStartTime;
+                if (elapsed > loadingTimeoutMs && gameInstance.textProgress && gameInstance.textProgress.style.display !== 'none') {
+                    clearInterval(loadingCheckInterval);
+                    loadingCheckInterval = null;
+                    gameInstance.textProgress.innerHTML = 'Loading timeout - please refresh or try a different browser';
+                    console.error('[Unity] Loading timeout after ' + Math.floor(elapsed / 1000) + ' seconds');
+                }
+            }, 5000);
+        }
     }
 
     gameInstance.progress.full.style.width = (100 * progress) + "%";
     gameInstance.progress.empty.style.width = (100 * (1 - progress)) + "%";
 
-    //gameInstance.textProgress.innerHTML = 'Loading - ' + Math.floor(progress * 100) + '%' + ' <img src="' + rootPath + '/gears.gif" class="spinner" />';
-
     if(progress >= 1 || progress === 'complete')
     {
         // Game is fully loaded - hide the loading screen
+        if (loadingCheckInterval) {
+            clearInterval(loadingCheckInterval);
+            loadingCheckInterval = null;
+        }
         SendMessage = gameInstance.SendMessage;
         gameInstance.logo.style.display = 'none';
         gameInstance.progress.style.display = 'none';
@@ -41,7 +62,7 @@ function UnityProgress(gameInstance, progress) {
     }
     else if(progress >= 0.9)
     {
-        gameInstance.textProgress.innerHTML = '100% - Running, Wait..' +' <img src="' + rootPath + '/gears.gif" class="spinner" />';
+        gameInstance.textProgress.innerHTML = 'Initializing game engine...' +' <img src="' + rootPath + '/gears.gif" class="spinner" />';
         gameInstance.progress.style.display = 'none';
     }
     else

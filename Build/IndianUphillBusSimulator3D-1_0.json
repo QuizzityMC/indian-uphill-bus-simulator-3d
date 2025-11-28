@@ -4,7 +4,7 @@
 "dataUrl": "IndianUphillBusSimulator3D-1_0.data.unityweb",
 "wasmCodeUrl": "IndianUphillBusSimulator3D-1_0.wasm.code.unityweb",
 "wasmFrameworkUrl": "IndianUphillBusSimulator3D-1_0.wasm.framework.unityweb",
-"TOTAL_MEMORY": 268435456,
+"TOTAL_MEMORY": 134217728,
 "graphicsAPI": ["WebGL 2.0", "WebGL 1.0"],
 "webglContextAttributes": {"preserveDrawingBuffer": false},
 "splashScreenStyle": "Dark",
