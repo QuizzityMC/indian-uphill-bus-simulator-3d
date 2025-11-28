@@ -1,9 +1,11 @@
 const rootPath = 'TemplateData';
 
-// Track loading start time for timeout detection
+// Track loading state for timeout detection
 var loadingStartTime = Date.now();
 var loadingTimeoutMs = 120000; // 2 minute timeout
+var timeoutCheckIntervalMs = 5000; // Check every 5 seconds
 var loadingCheckInterval = null;
+var isLoadingComplete = false;
 
 function UnityProgress(gameInstance, progress) {
     if (!gameInstance.Module) {
@@ -32,16 +34,17 @@ function UnityProgress(gameInstance, progress) {
         
         // Start loading timeout check
         loadingStartTime = Date.now();
+        isLoadingComplete = false;
         if (!loadingCheckInterval) {
             loadingCheckInterval = setInterval(function() {
                 var elapsed = Date.now() - loadingStartTime;
-                if (elapsed > loadingTimeoutMs && gameInstance.textProgress && gameInstance.textProgress.style.display !== 'none') {
+                if (elapsed > loadingTimeoutMs && !isLoadingComplete) {
                     clearInterval(loadingCheckInterval);
                     loadingCheckInterval = null;
                     gameInstance.textProgress.innerHTML = 'Loading timeout - please refresh or try a different browser';
                     console.error('[Unity] Loading timeout after ' + Math.floor(elapsed / 1000) + ' seconds');
                 }
-            }, 5000);
+            }, timeoutCheckIntervalMs);
         }
     }
 
@@ -51,6 +54,7 @@ function UnityProgress(gameInstance, progress) {
     if(progress >= 1 || progress === 'complete')
     {
         // Game is fully loaded - hide the loading screen
+        isLoadingComplete = true;
         if (loadingCheckInterval) {
             clearInterval(loadingCheckInterval);
             loadingCheckInterval = null;

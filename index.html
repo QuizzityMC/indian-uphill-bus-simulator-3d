@@ -109,7 +109,7 @@
       
       // Global error handler for out-of-memory and other critical errors
       window.addEventListener('error', function(e) {
-        if (e.message && (e.message.indexOf('out of memory') !== -1 || e.message.indexOf('Out of memory') !== -1)) {
+        if (e.message && e.message.toLowerCase().indexOf('out of memory') !== -1) {
           console.error('[Unity] Out of memory error detected');
           var container = document.getElementById('gameContainer');
           if (container) {
