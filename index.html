@@ -12,11 +12,15 @@
       // Bus unlock modification script - unlocks all buses at game start
       var companyName = "Indian Uphill Bus Simulator 3D";
       var productName = "Indian Uphill Bus Simulator 3D";
-      var INIT_CHECK_INTERVAL_MS = 100; // Check every 100ms
-      var INIT_DURATION_SECONDS = 10; // Check for 10 seconds (extended for better coverage)
-      var MAX_INIT_ATTEMPTS = (INIT_DURATION_SECONDS * 1000) / INIT_CHECK_INTERVAL_MS; // 100 attempts
-      var POST_INIT_DELAY_MS = 500; // Delay after Unity runtime init
-      var BUS_COUNT = 50; // Extended range for comprehensive coverage
+      
+      // Timing configuration for unlock initialization
+      // These values are optimized for Unity WebGL games which typically take 3-8 seconds to initialize
+      // The 10-second duration ensures unlock keys are set even on slower devices/connections
+      var INIT_CHECK_INTERVAL_MS = 100; // Check every 100ms for responsive coverage
+      var INIT_DURATION_SECONDS = 10; // Extended to 10 seconds to cover slow initialization scenarios
+      var MAX_INIT_ATTEMPTS = (INIT_DURATION_SECONDS * 1000) / INIT_CHECK_INTERVAL_MS; // 100 attempts total
+      var POST_INIT_DELAY_MS = 500; // 500ms delay after Unity runtime init to catch late PlayerPrefs reads
+      var BUS_COUNT = 50; // Extended range covers most Unity vehicle games (typically have 10-30 vehicles)
       
       // This function unlocks all buses by setting unlock keys in localStorage
       function unlockAllBuses() {

@@ -22,6 +22,14 @@
     HEARTBEAT_INTERVAL_MS: 5000,
     ROOM_CODE_LENGTH: 6,
     POSITION_INTERPOLATION_FACTOR: 0.3, // Smooth interpolation for remote buses
+    // World simulation constants for visual bus positioning
+    WORLD_SIZE: 200, // Size of the simulated world coordinate space
+    WORLD_OFFSET: 100, // Center offset for world coordinates
+    WORLD_MAX_ROTATION: 360, // Max rotation in degrees
+    WORLD_MAX_SPEED: 10, // Max simulated bus speed
+    // Minimap overlay positioning
+    MINIMAP_HEIGHT_RATIO: 0.2, // Height of minimap area as ratio of container
+    MINIMAP_OFFSET: 10, // Pixel offset from top
     ICE_SERVERS: [
       { urls: 'stun:stun.l.google.com:19302' },
       { urls: 'stun:stun1.l.google.com:19302' },
@@ -88,12 +96,24 @@
         console.log('[BusSync] Unable to get bus state from Unity:', e);
       }
       
-      // Return simulated bus state for demonstration
-      // In a real implementation, this would come from Unity
+      // Return simulated bus state for demonstration when Unity bridge is not available
+      // In a real implementation, this would come from Unity via SendMessage
       return {
-        position: { x: Math.random() * 100, y: 0, z: Math.random() * 100 },
-        rotation: { x: 0, y: Math.random() * 360, z: 0 },
-        velocity: { x: 0, y: 0, z: Math.random() * 10 },
+        position: { 
+          x: Math.random() * CONFIG.WORLD_OFFSET, 
+          y: 0, 
+          z: Math.random() * CONFIG.WORLD_OFFSET 
+        },
+        rotation: { 
+          x: 0, 
+          y: Math.random() * CONFIG.WORLD_MAX_ROTATION, 
+          z: 0 
+        },
+        velocity: { 
+          x: 0, 
+          y: 0, 
+          z: Math.random() * CONFIG.WORLD_MAX_SPEED 
+        },
         busType: localStorage.getItem('selectedBus') || 'default',
         timestamp: Date.now()
       };
@@ -171,13 +191,13 @@
       const pos = busData.current.position;
       const gameContainer = document.getElementById('gameContainer');
       if (gameContainer) {
-        // Map world position to screen position (simplified)
+        // Map world position to screen position using configuration constants
         const containerRect = gameContainer.getBoundingClientRect();
-        const normalizedX = ((pos.x % 200) + 100) / 200; // Normalize to 0-1
-        const normalizedZ = ((pos.z % 200) + 100) / 200;
+        const normalizedX = ((pos.x % CONFIG.WORLD_SIZE) + CONFIG.WORLD_OFFSET) / CONFIG.WORLD_SIZE; // Normalize to 0-1
+        const normalizedZ = ((pos.z % CONFIG.WORLD_SIZE) + CONFIG.WORLD_OFFSET) / CONFIG.WORLD_SIZE;
         
         indicator.style.left = (containerRect.left + normalizedX * containerRect.width) + 'px';
-        indicator.style.top = (containerRect.top + (1 - normalizedZ) * containerRect.height * 0.2 + 10) + 'px';
+        indicator.style.top = (containerRect.top + (1 - normalizedZ) * containerRect.height * CONFIG.MINIMAP_HEIGHT_RATIO + CONFIG.MINIMAP_OFFSET) + 'px';
         indicator.style.display = 'block';
       }
     }
