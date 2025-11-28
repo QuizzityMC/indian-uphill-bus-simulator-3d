@@ -32,9 +32,11 @@
     return code;
   }
 
-  // Generate a random player ID
+  // Generate a random player ID using crypto API for better randomness
   function generatePlayerId() {
-    return 'player_' + Math.random().toString(36).substring(2, 11);
+    const array = new Uint32Array(2);
+    crypto.getRandomValues(array);
+    return 'player_' + array[0].toString(36) + array[1].toString(36);
   }
 
   // Get or create player name
@@ -145,13 +147,13 @@
     async createOffer() {
       const peerConnection = new RTCPeerConnection({ iceServers: CONFIG.ICE_SERVERS });
       
-      // Create data channel
+      // Create data channel with some reliability for chat messages
       const dataChannel = peerConnection.createDataChannel('gameData', {
         ordered: false,
-        maxRetransmits: 0
+        maxRetransmits: 3
       });
 
-      this.setupDataChannel(dataChannel, 'pending');
+      this.setupDataChannel(dataChannel, 'pending_host');
 
       peerConnection.onicecandidate = (event) => {
         if (!event.candidate) {
@@ -175,7 +177,7 @@
       const peerConnection = new RTCPeerConnection({ iceServers: CONFIG.ICE_SERVERS });
 
       peerConnection.ondatachannel = (event) => {
-        this.setupDataChannel(event.channel, 'host');
+        this.setupDataChannel(event.channel, 'pending_guest');
       };
 
       peerConnection.onicecandidate = (event) => {
@@ -215,18 +217,21 @@
     /**
      * Setup data channel event handlers
      */
-    setupDataChannel(dataChannel, peerId) {
+    setupDataChannel(dataChannel, connectionId) {
+      let remotePlayerId = null;
+
       dataChannel.onopen = () => {
-        console.log('[Multiplayer] Data channel opened with:', peerId);
+        console.log('[Multiplayer] Data channel opened:', connectionId);
         
-        // Store the connection
-        this.peers.set(peerId, {
+        // Store the connection temporarily until we get player info
+        this.peers.set(connectionId, {
           connection: this.pendingConnection,
-          dataChannel: dataChannel
+          dataChannel: dataChannel,
+          remotePlayerId: null
         });
 
         // Send our player info
-        this.sendToPeer(peerId, {
+        this.sendToPeer(connectionId, {
           type: 'playerInfo',
           playerId: this.playerId,
           playerName: this.playerName,
@@ -242,24 +247,30 @@
       dataChannel.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          this.handleMessage(peerId, data);
+          // Track the remote player ID when we receive their info
+          if (data.type === 'playerInfo' && data.playerId) {
+            remotePlayerId = data.playerId;
+            const peer = this.peers.get(connectionId);
+            if (peer) {
+              peer.remotePlayerId = remotePlayerId;
+            }
+          }
+          this.handleMessage(connectionId, data);
         } catch (e) {
           console.error('[Multiplayer] Error parsing message:', e);
         }
       };
 
       dataChannel.onclose = () => {
-        console.log('[Multiplayer] Data channel closed:', peerId);
-        const peer = this.peers.get(peerId);
+        console.log('[Multiplayer] Data channel closed:', connectionId);
+        const peer = this.peers.get(connectionId);
         if (peer) {
-          this.peers.delete(peerId);
-          // Find and remove the player associated with this peer
-          for (const [playerId, player] of this.players) {
-            if (playerId !== this.playerId) {
-              this.players.delete(playerId);
-              this.ui.addSystemMessage(`${player.name} disconnected`);
-              break;
-            }
+          this.peers.delete(connectionId);
+          // Remove the specific player associated with this connection
+          if (peer.remotePlayerId && this.players.has(peer.remotePlayerId)) {
+            const player = this.players.get(peer.remotePlayerId);
+            this.players.delete(peer.remotePlayerId);
+            this.ui.addSystemMessage(`${player.name} disconnected`);
           }
           this.ui.updatePlayerList();
         }
@@ -273,7 +284,7 @@
     /**
      * Handle incoming message from peer
      */
-    handleMessage(peerId, data) {
+    handleMessage(connectionId, data) {
       const handler = this.messageHandlers.get(data.type);
       if (handler) {
         handler(peerId, data);
@@ -948,7 +959,7 @@
       const players = this.manager.getPlayers();
       return players.map(player => `
         <div class="mp-player-item">
-          <div class="mp-player-color" style="background: ${player.color}"></div>
+          <div class="mp-player-color" style="background: ${this.sanitizeColor(player.color)}"></div>
           <span class="mp-player-name">${this.escapeHtml(player.name)}</span>
           ${player.id === this.manager.playerId ? '<span class="mp-player-badge">You</span>' : ''}
           ${player.isHost ? '<span class="mp-player-badge">Host</span>' : ''}
@@ -963,6 +974,23 @@
       const div = document.createElement('div');
       div.textContent = text;
       return div.innerHTML;
+    }
+
+    /**
+     * Validate and sanitize color value
+     */
+    sanitizeColor(color) {
+      // Only allow colors from the predefined palette or valid hex colors
+      const validColors = CONFIG.PLAYER_COLORS;
+      if (validColors.includes(color)) {
+        return color;
+      }
+      // Validate hex color format
+      if (/^#[0-9A-Fa-f]{6}$/.test(color)) {
+        return color;
+      }
+      // Return a default color if invalid
+      return validColors[0];
     }
 
     /**
@@ -1030,12 +1058,32 @@
         if (target.id === 'mp-connection-copy') {
           const textarea = document.getElementById('mp-connection-info');
           if (textarea) {
-            textarea.select();
-            document.execCommand('copy');
-            target.textContent = 'Copied!';
-            setTimeout(() => {
-              target.textContent = 'Copy to Clipboard';
-            }, 2000);
+            const text = textarea.value;
+            // Use modern Clipboard API with fallback
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+              navigator.clipboard.writeText(text).then(() => {
+                target.textContent = 'Copied!';
+                setTimeout(() => {
+                  target.textContent = 'Copy to Clipboard';
+                }, 2000);
+              }).catch(() => {
+                // Fallback to deprecated method
+                textarea.select();
+                document.execCommand('copy');
+                target.textContent = 'Copied!';
+                setTimeout(() => {
+                  target.textContent = 'Copy to Clipboard';
+                }, 2000);
+              });
+            } else {
+              // Fallback for older browsers
+              textarea.select();
+              document.execCommand('copy');
+              target.textContent = 'Copied!';
+              setTimeout(() => {
+                target.textContent = 'Copy to Clipboard';
+              }, 2000);
+            }
           }
         }
         
@@ -1198,7 +1246,7 @@
       const msgEl = document.createElement('div');
       msgEl.className = 'mp-chat-message';
       msgEl.innerHTML = `
-        <span class="mp-chat-message-name" style="color: ${color}">${this.escapeHtml(name)}:</span>
+        <span class="mp-chat-message-name" style="color: ${this.sanitizeColor(color)}">${this.escapeHtml(name)}:</span>
         <span class="mp-chat-message-text">${this.escapeHtml(message)}</span>
       `;
       container.appendChild(msgEl);
