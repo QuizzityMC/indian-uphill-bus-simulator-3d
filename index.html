@@ -12,61 +12,111 @@
       // Bus unlock modification script - unlocks all buses at game start
       var companyName = "Indian Uphill Bus Simulator 3D";
       var productName = "Indian Uphill Bus Simulator 3D";
-      var INIT_CHECK_INTERVAL_MS = 100; // Check every 100ms
-      var INIT_DURATION_SECONDS = 5; // Check for 5 seconds
-      var MAX_INIT_ATTEMPTS = (INIT_DURATION_SECONDS * 1000) / INIT_CHECK_INTERVAL_MS; // 50 attempts
-      var POST_INIT_DELAY_MS = 100; // Delay after Unity runtime init
       
-      // This function unlocks all buses by setting unlock keys in localStorage
+      // Timing configuration for unlock initialization
+      // These values are optimized for Unity WebGL games which typically take 3-8 seconds to initialize
+      // The 10-second duration ensures unlock keys are set even on slower devices/connections
+      var INIT_CHECK_INTERVAL_MS = 100; // Check every 100ms for responsive coverage
+      var INIT_DURATION_SECONDS = 10; // Extended to 10 seconds to cover slow initialization scenarios
+      var MAX_INIT_ATTEMPTS = (INIT_DURATION_SECONDS * 1000) / INIT_CHECK_INTERVAL_MS; // 100 attempts total
+      var POST_INIT_DELAY_MS = 500; // 500ms delay after Unity runtime init to catch late PlayerPrefs reads
+      var BUS_COUNT = 50; // Extended range covers most Unity vehicle games (typically have 10-30 vehicles)
+      
+      // This function attempts to unlock all buses by setting PlayerPrefs keys in localStorage
+      // NOTE: These are the ACTUAL keys found from decompiling the Unity data file
+      // However, this may not work because Unity WebGL games compile unlock logic into WASM
       function unlockAllBuses() {
-        console.log("[Bus Unlock] Unlocking all buses");
+        console.log("[Bus Unlock] Setting PlayerPrefs keys (discovered from decompilation)");
         
-        // Try various common unlock key patterns for buses
-        // Range 0-20 covers most Unity games (21 buses total to ensure full coverage)
-        var unlockPatterns = [
-          // Pattern 1: BusXUnlocked
-          { prefix: "Bus", suffix: "Unlocked", count: 20 },
-          // Pattern 2: VehicleXUnlocked
-          { prefix: "Vehicle", suffix: "Unlocked", count: 20 },
-          // Pattern 3: bus_X_unlocked
-          { prefix: "bus_", suffix: "_unlocked", count: 20 },
-          // Pattern 4: UnlockedBusX
-          { prefix: "UnlockedBus", suffix: "", count: 20 },
-          // Pattern 5: BusX (simple pattern)
-          { prefix: "Bus", suffix: "", count: 20 },
-          // Pattern 6: Unlock_X
-          { prefix: "Unlock_", suffix: "", count: 20 }
+        // === ACTUAL KEYS FOUND IN DECOMPILED DATA ===
+        // These are the real PlayerPrefs keys used by the game:
+        var actualKeys = {
+          // Currency - Set to 9999999999 as requested
+          "TotalCoins": "9999999999",
+          "totalcoins": "9999999999",
+          "Coins": "9999999999",
+          "coins": "9999999999",
+          
+          // Level unlock
+          "NumOfLevelsUnlocked": "100",
+          "LevelAllUnlock": "1",
+          "Current_Level": "1",
+          
+          // Tutorial/Character
+          "IsTutorialCompleted": "1",
+          "UnlockedCharacterName": "AllUnlocked",
+          "LifeMaxDistanceTravelled": "999999",
+          
+          // Selected bus (0-7 are available buses based on Bus_1E through Bus_7E found)
+          "SelectedBus": "0"
+        };
+        
+        // Set each actual key with Unity PlayerPrefs format
+        for (var key in actualKeys) {
+          var value = actualKeys[key];
+          // Unity WebGL PlayerPrefs format: "CompanyName.ProductName.Key"
+          localStorage.setItem(companyName + "." + productName + "." + key, value);
+          // Also try direct key
+          localStorage.setItem(key, value);
+        }
+        
+        // === BUS UNLOCK PATTERNS ===
+        // Based on discovered GameObjects: Bus_1E through Bus_7E
+        for (var i = 1; i <= 7; i++) {
+          var busKey = companyName + "." + productName + ".Bus_" + i + "E_Unlocked";
+          localStorage.setItem(busKey, "1");
+          localStorage.setItem("Bus_" + i + "E_Unlocked", "1");
+          localStorage.setItem(companyName + "." + productName + ".Bus" + i + "Unlocked", "1");
+          localStorage.setItem("Bus" + i + "Unlocked", "1");
+        }
+        
+        // === LEVEL UNLOCK ===
+        // Based on discovered levels: Level_01 through Level_20
+        for (var i = 1; i <= 20; i++) {
+          var levelKey = companyName + "." + productName + ".Level_" + (i < 10 ? "0" + i : i) + "_Unlocked";
+          localStorage.setItem(levelKey, "1");
+          localStorage.setItem("Level_" + (i < 10 ? "0" + i : i) + "_Unlocked", "1");
+          localStorage.setItem(companyName + "." + productName + ".Level" + i + "Unlocked", "1");
+        }
+        
+        // === IAP UNLOCK FLAGS ===
+        // Based on discovered: IAPUnloackAllBus (note the typo in original!)
+        localStorage.setItem(companyName + "." + productName + ".IAPUnloackAllBus", "1");
+        localStorage.setItem("IAPUnloackAllBus", "1");
+        localStorage.setItem(companyName + "." + productName + ".UnlockAllBus", "1");
+        localStorage.setItem("UnlockAllBus", "1");
+        
+        // === ADDITIONAL GLOBAL FLAGS ===
+        var globalFlags = [
+          "AllBusesUnlocked", "UnlockAll", "AllVehiclesUnlocked",
+          "PremiumUnlocked", "FullVersion", "AllLevelsUnlocked",
+          "VIP", "Premium", "NoAds"
         ];
         
-        // Set unlock keys for all patterns
-        unlockPatterns.forEach(function(pattern) {
-          for (var i = 0; i <= pattern.count; i++) {
-            var key = companyName + "." + productName + "." + pattern.prefix + i + pattern.suffix;
-            // Set unlock state to "1" (unlocked)
-            localStorage.setItem(key, "1");
-            localStorage.setItem(key + "_int", "1");
-          }
+        globalFlags.forEach(function(flag) {
+          localStorage.setItem(companyName + "." + productName + "." + flag, "1");
+          localStorage.setItem(flag, "1");
         });
         
-        // Also set some global unlock flags
-        localStorage.setItem(companyName + "." + productName + ".AllBusesUnlocked", "1");
-        localStorage.setItem(companyName + "." + productName + ".UnlockAll", "1");
-        localStorage.setItem(companyName + "." + productName + ".AllVehiclesUnlocked", "1");
-        
-        console.log("[Bus Unlock] All bus unlock keys have been set");
+        console.log("[Bus Unlock] PlayerPrefs keys set. Keys found from decompilation:");
+        console.log("  - TotalCoins, NumOfLevelsUnlocked, LevelAllUnlock, SelectedBus");
+        console.log("  - Buses: Bus_1E through Bus_7E");
+        console.log("  - Levels: Level_01 through Level_20");
+        console.log("  - IAP: IAPUnloackAllBus (typo in original game code)");
+        console.log("[Bus Unlock] NOTE: This may not work due to WASM-compiled unlock logic");
       }
       
-      // Call immediately
+      // Call immediately before anything else loads
       unlockAllBuses();
       
-      // Also set it periodically during Unity's initialization
+      // Also set it periodically during Unity's initialization for reliability
       var attempts = 0;
       var interval = setInterval(function() {
         unlockAllBuses();
         attempts++;
         if (attempts >= MAX_INIT_ATTEMPTS) {
           clearInterval(interval);
-          console.log("[Bus Unlock] Finished unlocking buses");
+          console.log("[Bus Unlock] Finished unlocking buses after " + attempts + " attempts");
         }
       }, INIT_CHECK_INTERVAL_MS);
       
@@ -81,11 +131,20 @@
               UnityProgress(gameInstance, "complete");
               // Clear the interval since Unity is initialized
               clearInterval(interval);
-              // Unlock buses one final time after Unity runtime is fully initialized
+              // Unlock buses multiple times after Unity runtime is fully initialized
+              // This ensures unlock keys are set during Unity's PlayerPrefs initialization
+              setTimeout(function() {
+                unlockAllBuses();
+                console.log("[Bus Unlock] Post-init unlock (immediate)");
+              }, POST_INIT_DELAY_MS);
+              setTimeout(function() {
+                unlockAllBuses();
+                console.log("[Bus Unlock] Post-init unlock (delayed)");
+              }, POST_INIT_DELAY_MS * 2);
               setTimeout(function() {
                 unlockAllBuses();
                 console.log("[Bus Unlock] Final unlock after Unity initialization");
-              }, POST_INIT_DELAY_MS);
+              }, POST_INIT_DELAY_MS * 5);
             }
           }
         }
